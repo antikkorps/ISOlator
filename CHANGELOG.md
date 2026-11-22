@@ -6,6 +6,8 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-22
+
 ### Security
 - Signatures made by a revoked or expired key, and expired signatures, are
   now refused (previously only bad signatures were); a revoked key anywhere in
@@ -61,5 +63,6 @@ First public release.
   images and their initrds, but not yet booted on real hardware.
 - Debian installer / Debian Live, Windows and arm64 ISOs are not bootable yet.
 
-[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/antikkorps/ISOlator/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/antikkorps/ISOlator/releases/tag/v0.1.0
