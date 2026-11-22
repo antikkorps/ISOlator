@@ -1,0 +1,25 @@
+# Pinned ISO signing keys: "<primary key fingerprint>  <label>".
+# A signature counts only if made by one of these keys; the *.gpg keyrings
+# here merely let gpgv check it. Each fingerprint was copied from the page
+# given in the comment (read on 2026-11-22) and matched against the key file.
+
+# https://ubuntu.com/tutorials/how-to-verify-ubuntu (key via keyserver.ubuntu.com)
+843938DF228D22F7B3742BC0D94AA3F0EFE21092  Ubuntu CD Image Automatic Signing Key (2012)
+
+# https://www.debian.org/CD/verify
+10460DAD76165AD81FBC0CE9988021A964E6EA7D  Debian CD signing key (2009)
+DF9B9C49EAA9298432589D76DA87E80D6294BE9B  Debian CD signing key (2011)
+F41D30342F3546695F65C66942468F4009EA8AC3  Debian Testing CDs Automatic Signing Key
+
+# https://fedoraproject.org/security/ (key file https://fedoraproject.org/fedora.gpg)
+4F50A6114CD5C6976A7F1179655A4B02F577861E  Fedora 45
+
+# https://rockylinux.org/keys (https://dl.rockylinux.org/pub/rocky/RPM-GPG-KEY-Rocky-9 and -10)
+21CB256AE16FC54C6E652949702D426D350D275D  Rocky Linux 9
+FC226859C0860BF0DDB95B085B106C736FEDFC85  Rocky Linux 10
+
+# https://linuxmint-installation-guide.readthedocs.io/en/latest/verify.html (key via keys.openpgp.org)
+27DEB15644C6B3CF3BD7D291300F846BA25BAE09  Linux Mint ISO Signing Key
+
+# https://wiki.cachyos.org/cachyos_basic/download (key via keys.openpgp.org)
+882DCFE48E2051D48E2562ABF3B607488DB35A47  CachyOS
