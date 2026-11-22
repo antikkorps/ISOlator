@@ -68,3 +68,56 @@ class GpgTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+FPR = "A" * 40
+
+
+def status(*lines: str) -> list[list[str]]:
+    return [line.split() for line in lines]
+
+
+class PinnedSignerTest(unittest.TestCase):
+    def check(self, *lines):
+        from isolator.gpg import _pinned_signer
+        return _pinned_signer(status(*lines), {FPR})
+
+    def valid(self, keyword="GOODSIG"):
+        return ["NEWSIG", f"{keyword} KEYID uid", f"VALIDSIG {'B' * 40} 2026 1 0 4 0 1 10 00 {FPR}"]
+
+    def test_good_signature(self):
+        self.assertEqual(self.check(*self.valid()), FPR)
+
+    def test_expired_signature_revoked_or_expired_key_refused(self):
+        for keyword in ("EXPSIG", "EXPKEYSIG", "REVKEYSIG"):
+            with self.assertRaises(SignatureError, msg=keyword):
+                self.check(*self.valid(keyword))
+
+    def test_unknown_second_signer_tolerated(self):
+        self.assertEqual(self.check(*self.valid(), "NEWSIG", "ERRSIG 1234 1 10 00 0 9"), FPR)
+
+    def test_any_bad_or_revoked_signature_refuses_the_file(self):
+        for keyword in ("BADSIG", "REVKEYSIG"):
+            with self.assertRaises(SignatureError, msg=keyword):
+                self.check(*self.valid(), "NEWSIG", f"{keyword} OTHER uid")
+
+    def test_validsig_without_goodsig_in_same_block_refused(self):
+        with self.assertRaises(SignatureError):
+            self.check("NEWSIG", "GOODSIG X uid", "NEWSIG", f"VALIDSIG {'B' * 40} 2026 1 0 4 0 1 10 00 {FPR}")
+
+
+@unittest.skipUnless(shutil.which("gpg") and shutil.which("gpgv"), "gpg/gpgv not installed")
+class RealExpiryTest(unittest.TestCase):
+    def test_expired_signature_from_real_gpg(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "k"
+            home.mkdir(mode=0o700)
+            past = ("--faked-system-time", "20250101T000000")
+            _gpg(home, *past, "--quick-gen-key", "old <old@example.invalid>", "ed25519", "sign", "never")
+            fpr = [line.split(":")[9] for line in _gpg(home, "--with-colons", "--list-keys").decode().splitlines()
+                   if line.startswith("fpr:")][0]
+            ring = Path(tmp) / "k.gpg"
+            ring.write_bytes(_gpg(home, "--export"))
+            sig = _gpg(home, *past, "--default-sig-expire", "1d", "--detach-sign", data=b"data")
+            with self.assertRaises(SignatureError):
+                verify_detached(b"data", sig, [ring], {fpr})

@@ -67,7 +67,7 @@ def _inspect(path: Path, rel: str, options: dict) -> Result:
 
 def analyse(root: Path, **options) -> tuple[list[tuple[str, Result]], list[tuple[str, str]]]:
     kept, skipped = [], []
-    for path in sorted(root.rglob("*.iso"), key=lambda p: str(p).lower()):
+    for path in sorted(root.rglob("*.iso", case_sensitive=False), key=lambda p: str(p).lower()):
         rel = "/" + path.relative_to(root).as_posix()
         if not SAFE_PATH.match(rel):
             skipped.append((rel, "forbidden characters in path (spaces, accents, $...)"))

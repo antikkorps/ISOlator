@@ -30,6 +30,22 @@ Overview, disk layout and supported ISO families: @README.md
 python3 -m unittest discover -s tests -t . && bash -n install-multiboot.sh && shellcheck install-multiboot.sh && grub-script-check examples/local.cfg
 ```
 
+## Releasing
+
+Semantic Versioning; tags are annotated `vX.Y.Z` on `main`.
+
+1. Move the `[Unreleased]` items of `CHANGELOG.md` under a new
+   `## [X.Y.Z] - YYYY-MM-DD` section; keep "Known limitations" honest
+   (e.g. what was not tested on real hardware). Update the compare links at
+   the bottom.
+2. Set `__version__` in `isolator/__init__.py`.
+3. Run the "Before pushing" command, commit `Release X.Y.Z`, push `main`.
+4. `git tag -a vX.Y.Z -m "ISOlator X.Y.Z"` and `git push origin vX.Y.Z`.
+5. Release notes = that changelog section, nothing else:
+   `awk '/^## \[X.Y.Z\]/{f=1;next} /^## \[|^\[Unreleased\]:/{f=0} f' CHANGELOG.md > notes.md`
+   then `gh release create vX.Y.Z --title "ISOlator X.Y.Z" --notes-file notes.md --verify-tag`.
+6. Never move or delete a published tag; fix forward with a new patch release.
+
 ## Workflow
 
 - Plan first, then TDD: write the failing test and show the RED output before

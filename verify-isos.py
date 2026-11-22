@@ -6,11 +6,12 @@ isolator/verify.py for the names). Signatures are checked with gpgv against
 keys/*.gpg, and only keys whose fingerprint is pinned in keys/trusted.txt
 are accepted. Read-only: nothing on the disk is modified.
 
-Digests are cached in ~/.cache/isolator (never on the disk itself);
---no-cache re-reads every ISO.
+--cache reuses digests from ~/.cache/isolator for ISOs whose path, size and
+mtime are unchanged. Those can be forged by whoever had the disk, so cached
+results are flagged and the default re-reads every ISO.
 
 Usage:
-    ./verify-isos.py [--root /media/$USER/MULTIBOOT] [--no-cache]
+    ./verify-isos.py [--root /media/$USER/MULTIBOOT] [--cache]
 Exit status: 0 all verified, 1 something unverified, 2 a checksum MISMATCH.
 """
 from __future__ import annotations
@@ -31,14 +32,21 @@ def main() -> int:
     ap.add_argument("--root", type=Path, default=Path(f"/media/{getpass.getuser()}/MULTIBOOT"),
                     help="mount point of the MULTIBOOT partition")
     ap.add_argument("--keys", type=Path, default=KEYS, help="directory with *.gpg and trusted.txt")
-    ap.add_argument("--no-cache", action="store_true",
-                    help="re-hash every ISO (the cache trusts unchanged path, size and mtime)")
+    ap.add_argument("--cache", action="store_true",
+                    help="reuse digests of ISOs with unchanged path, size and mtime (faster, weaker)")
     args = ap.parse_args()
 
-    cache = DigestCache(None if args.no_cache else default_store())
-    reports = verify_tree(args.root, args.keys, cache=cache,
-                          warn=lambda m: print(f"  warning  {m}", file=sys.stderr))
+    cache = DigestCache(default_store() if args.cache else None)
+    try:
+        reports = verify_tree(args.root, args.keys, cache=cache,
+                              warn=lambda m: print(f"  warning  {m}", file=sys.stderr))
+    except FileNotFoundError as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 1
     cache.save()
+    if not reports:
+        print(f"error: no ISO found under {args.root}", file=sys.stderr)
+        return 1
     for r in reports:
         print(f"  {r.status.value:<10} {r.iso.relative_to(args.root)}\n             {r.detail}")
     statuses = {r.status for r in reports}

@@ -20,16 +20,38 @@ def _status(stdout: str) -> list[list[str]]:
     return [line.split()[1:] for line in stdout.splitlines() if line.startswith("[GNUPG:] ")]
 
 
+# Any of these anywhere refuses the whole file: a revoked key must stop
+# everything it signed, even next to another valid signature.
+FATAL = {"BADSIG", "REVKEYSIG"}
+# A signature is usable only if its own block says GOODSIG; EXPSIG and
+# EXPKEYSIG come with a VALIDSIG too and must not count.
+USABLE = "GOODSIG"
+
+
+def _blocks(status: list[list[str]]) -> list[list[list[str]]]:
+    """Status lines grouped per signature (gpgv starts each with NEWSIG)."""
+    blocks: list[list[list[str]]] = [[]]
+    for s in status:
+        if s[0] == "NEWSIG":
+            blocks.append([])
+        blocks[-1].append(s)
+    return [b for b in blocks if b]
+
+
 def _pinned_signer(status: list[list[str]], pinned: set[str]) -> str:
-    if any(s[0] == "BADSIG" for s in status):
-        raise SignatureError("bad signature")
-    # VALIDSIG <fpr> ... <primary-key-fpr>; several signatures may be present
-    # (Ubuntu signs with an old and a new key), one pinned valid one suffices.
-    signers = [s[-1].upper() for s in status if s[0] == "VALIDSIG"]
-    for fpr in signers:
-        if fpr in {p.upper() for p in pinned}:
-            return fpr
-    raise SignatureError(f"no valid signature by a pinned key (valid signers: {signers or 'none'})")
+    keywords = {s[0] for s in status}
+    if keywords & FATAL:
+        raise SignatureError(f"refused: {', '.join(sorted(keywords & FATAL))}")
+    wanted, signers = {p.upper() for p in pinned}, []
+    for block in _blocks(status):
+        kinds = {s[0] for s in block}
+        # VALIDSIG <fpr> ... <primary-key-fpr>: pin the primary key, not a subkey.
+        for fpr in (s[-1].upper() for s in block if s[0] == "VALIDSIG"):
+            signers.append(fpr)
+            if USABLE in kinds and fpr in wanted:
+                return fpr
+    raise SignatureError(f"no usable signature by a pinned key (signers: {signers or 'none'}, "
+                         f"status: {', '.join(sorted(keywords - {'NEWSIG'}))})")
 
 
 def _gpgv(args: list[str], keyrings: list[Path], home: str) -> list[list[str]]:

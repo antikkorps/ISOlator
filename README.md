@@ -90,9 +90,15 @@ name):
 `./verify-isos.py` exits with 0 if everything is verified, 1 if something is
 unverified, and 2 on a checksum mismatch.
 
-Digests are cached in `~/.cache/isolator/` (on the host, never on the disk) and
-reused while an ISO keeps the same path, size and mtime; signatures are still
-checked on every run. `--no-cache` re-reads everything.
+By default every ISO is re-read. `--cache` reuses digests stored in
+`~/.cache/isolator/` (on the host, never on the disk) for ISOs whose path, size
+and mtime are unchanged; signatures are still checked every run. Size and mtime
+can be forged by anyone who had the disk, so cached results are flagged as
+such: use it for quick checks of your own disk, not after it left your hands.
+
+Signatures are refused if made by a revoked or expired key, or if expired;
+two signed lists disagreeing about an ISO verify nothing; symlinks and
+non-regular files are never reported as verified.
 
 ## Development
 
@@ -109,8 +115,17 @@ Test ISOs are generated in Python at test time (`tests/isobuilder.py`).
 - [x] Ubuntu / Mint from exFAT (casper add-on)
 - [x] GPG verification of ISOs with pinned keys
 - [ ] Debian installer / Debian Live from exFAT
-- [ ] GRUB theme (icons through `--class`)
+- [ ] Full GRUB customisation, driven by a user config file on the disk:
+  - ISOlator theme (background, fonts, colours, layout), with alternative themes
+  - per-distribution icons through `--class`
+  - menu title / branding, timeout, default entry, entry order, hidden entries
+  - submenus by category (installers, live systems, tools)
+  - resolution / `gfxmode`, keyboard layout (AZERTY…)
+  - theme preview without rebooting (QEMU/OVMF)
 - [ ] Secure Boot with personal keys, GRUB arm64
+- [ ] Graphical front-end (tkinter, standard library): pick the disk, install,
+  copy ISOs, generate the menu, verify; root steps through `pkexec`
+- [ ] Faster re-verification of ISOs signed directly (CachyOS `.sig`)
 
 ## Support
 

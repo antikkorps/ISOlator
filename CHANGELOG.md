@@ -6,6 +6,27 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+- Signatures made by a revoked or expired key, and expired signatures, are
+  now refused (previously only bad signatures were); a revoked key anywhere in
+  a file refuses the whole file.
+- Two signed checksum lists disagreeing about the same ISO now verify nothing
+  instead of the last one silently winning (downgrade with an old genuine list).
+- The digest cache is now opt-in (`--cache`) and cached results are flagged:
+  size and mtime can be forged by whoever had the disk.
+- Symlinks and non-regular files are never reported as verified, and are not
+  read as checksum lists.
+
+### Fixed
+- `verify-isos.py` exited 0 when the disk was not mounted or held no ISO.
+- ISOs with an uppercase `.ISO` extension were ignored by `verify-isos.py` and
+  `gen-menu.py`.
+- An unreadable file no longer aborts the whole verification.
+
+### Added
+- Release process documented in `CLAUDE.md`; roadmap extended (full GRUB
+  customisation, graphical front-end).
+
 ## [0.1.0] - 2026-11-22
 
 First public release.

@@ -54,6 +54,11 @@ class DiskTest(unittest.TestCase):
         self.assertEqual([rel for rel, _ in kept], ["/arch.iso"])
         self.assertEqual(sorted(rel for rel, _ in skipped), ["/arm.iso", "/has space.iso", "/junk.iso"])
 
+    def test_uppercase_extension_is_found(self):
+        build_iso(self.root / "ARCH.ISO", LOOPBACK)
+        kept, _ = analyse(self.root, build_addon=lambda iso: b"")
+        self.assertEqual([rel for rel, _ in kept], ["/ARCH.ISO"])
+
     def test_write_saves_menu_backup_and_addons(self):
         build_iso(self.root / "ubuntu.iso", CASPER)
         kept, _ = analyse(self.root, build_addon=lambda iso: b"ADDON")

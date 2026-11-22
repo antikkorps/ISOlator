@@ -1,9 +1,10 @@
 """Cache of ISO digests, so re-verifying a disk does not re-read every ISO.
 
-The store lives on the host (~/.cache), never on the multiboot disk: anyone
-able to alter an ISO there could alter a cache stored next to it. An entry is
-reused only while the file keeps the same path, size and mtime; signatures
-are still checked on every run, only the hashing is skipped.
+The store lives on the host (~/.cache), never on the multiboot disk. An entry
+is reused while the file keeps the same path, size and mtime; signatures are
+still checked on every run, only the hashing is skipped. Size and mtime can be
+forged by whoever had the disk, so the cache is opt-in and its hits are
+reported as such.
 """
 from __future__ import annotations
 
@@ -37,15 +38,20 @@ class DigestCache:
             return {}  # missing or corrupt: start over, it is only a cache
 
     def digest(self, path: Path, algo: str) -> str:
+        return self.lookup(path, algo)[0]
+
+    def lookup(self, path: Path, algo: str) -> tuple[str, bool]:
+        """(digest, True if it came from the cache rather than the file)."""
         st = path.stat()
         key, stamp = str(path.resolve()), [st.st_size, st.st_mtime_ns]
         entry = self.entries.get(key)
         if not isinstance(entry, dict) or entry.get("stamp") != stamp:
             entry = self.entries[key] = {"stamp": stamp, "digests": {}}
         digests = entry["digests"]
-        if algo not in digests:
-            digests[algo] = self.compute(path, algo)
-        return digests[algo]
+        if algo in digests:
+            return digests[algo], True
+        digests[algo] = self.compute(path, algo)
+        return digests[algo], False
 
     def save(self) -> None:
         if self.store is None:

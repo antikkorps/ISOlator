@@ -87,6 +87,47 @@ class VerifyTreeTest(unittest.TestCase):
         self.assertEqual([r.status for r in verify_tree(self.root, self.keys, cache=cache)],
                          [Status.UNVERIFIED])
 
+    def sign_sums(self, name: str, text: str) -> None:
+        (self.root / "iso" / name).write_text(text)
+        (self.root / "iso" / f"{name}.gpg").write_bytes(_gpg(self.home, "--detach-sign", data=text.encode()))
+
+    def test_conflicting_signed_lists_verify_nothing(self):
+        digest = self.add_iso("x.iso", b"x")
+        self.sign_sums("A-SUMS", f"{digest}  x.iso\n")
+        self.sign_sums("ZZZ-SUMS", f"{'0' * 64}  x.iso\n")
+        reports = verify_tree(self.root, self.keys)
+        self.assertEqual([r.status for r in reports], [Status.UNVERIFIED])
+        self.assertIn("conflicting", reports[0].detail)
+
+    def test_uppercase_extension_is_checked(self):
+        self.add_iso("EVIL.ISO", b"evil")
+        self.assertEqual(self.check(), {"EVIL.ISO": Status.UNVERIFIED})
+
+    def test_symlinked_iso_is_not_verified(self):
+        real = Path(self.tmp.name) / "genuine.iso"
+        real.write_bytes(b"x")
+        (self.root / "iso/x.iso").symlink_to(real)
+        self.sign_sums("SUMS", f"{hashlib.sha256(b'x').hexdigest()}  x.iso\n")
+        self.assertEqual(self.check(), {"x.iso": Status.UNVERIFIED})
+
+    def test_unreadable_entry_does_not_crash(self):
+        (self.root / "iso/dir.iso").mkdir()
+        self.sign_sums("SUMS", f"{'0' * 64}  dir.iso\n")
+        self.assertEqual(self.check(), {"dir.iso": Status.UNVERIFIED})
+
+    def test_missing_root_is_an_error(self):
+        with self.assertRaises(FileNotFoundError):
+            verify_tree(self.root / "not-mounted", self.keys)
+
+    def test_cached_digest_is_reported_as_such(self):
+        digest = self.add_iso("x.iso", b"x")
+        self.sign_sums("SUMS", f"{digest}  x.iso\n")
+        store = Path(self.tmp.name) / "d.json"
+        first = DigestCache(store)
+        self.assertNotIn("cached", verify_tree(self.root, self.keys, cache=first)[0].detail)
+        first.save()
+        self.assertIn("cached", verify_tree(self.root, self.keys, cache=DigestCache(store))[0].detail)
+
     def test_load_pinned(self):
         self.assertEqual(load_pinned(self.keys / "trusted.txt"), {self.fpr: "Test distro"})
 
