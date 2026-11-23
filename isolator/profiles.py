@@ -17,9 +17,10 @@ from isolator.iso9660 import Iso
 
 # Anything reaching a GRUB script is restricted to these characters: no
 # space, quote, $, ; or backtick, so ISO content cannot inject commands.
-SAFE_PATH = re.compile(r"^[A-Za-z0-9._+/-]+$")
-SAFE_ARG = re.compile(r"^[A-Za-z0-9._+/=:,-]+$")
-SAFE_CLASS = re.compile(r"^[a-z0-9_-]+$")
+# \Z, not $: "$" also matches before a trailing newline.
+SAFE_PATH = re.compile(r"^[A-Za-z0-9._+/-]+\Z")
+SAFE_ARG = re.compile(r"^[A-Za-z0-9._+/=:,-]+\Z")
+SAFE_CLASS = re.compile(r"^[a-z0-9_-]+\Z")
 ISO_SCAN = "iso-scan/filename=$iso"
 
 

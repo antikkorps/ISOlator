@@ -3,7 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from isolator.menu import addon_name, analyse, entry, render, write
+from isolator.config import MenuConfig
+from isolator.menu import addon_name, analyse, arrange, entry, render, settings, write
 from isolator.profiles import Result
 from tests.isobuilder import build_iso
 
@@ -17,7 +18,7 @@ class EntryTest(unittest.TestCase):
     def test_entry_is_conditional_on_the_iso(self):
         out = entry("/a/b.iso", Result(title='Bad "title" $x', css_class="arch", body="    x\n"))
         self.assertIn("if [ -f ($isopart)$iso ]; then", out)
-        self.assertIn('menuentry "Bad title x" --class arch {', out)
+        self.assertIn('menuentry "Bad title x" --class arch --id /a/b.iso {', out)
         self.assertNotIn("addon", out)
 
     def test_entry_with_addon(self):
@@ -30,6 +31,76 @@ class EntryTest(unittest.TestCase):
 
     def test_render_passes_grub_script_check(self):
         menu = render([("/a.iso", Result(title="A", css_class="a", body="    linux (loop)/k\n", addon=b"x"))])
+        with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
+            f.write(menu)
+            f.flush()
+            subprocess.run(["grub-script-check", f.name], check=True)
+
+
+def results(*rels_titles):
+    return [(rel, Result(title=title, css_class="x", body="")) for rel, title in rels_titles]
+
+
+class EntryIdTest(unittest.TestCase):
+    def test_entry_has_the_iso_path_as_id(self):
+        out = entry("/a/b.iso", Result(title="B", css_class="arch", body=""))
+        self.assertIn('menuentry "B" --class arch --id /a/b.iso {', out)
+
+
+class ArrangeTest(unittest.TestCase):
+    KEPT = results(("/x/arch.iso", "Arch"), ("/x/mint.iso", "Mint"),
+                   ("/x/ubuntu.iso", "Ubuntu"), ("/old/fedora.iso", "Fedora"))
+
+    def rels(self, entries):
+        return [rel for rel, _ in entries]
+
+    def test_no_config_keeps_title_order(self):
+        shown, hidden = arrange(self.KEPT, MenuConfig())
+        self.assertEqual(self.rels(shown), self.rels(self.KEPT))
+        self.assertEqual(hidden, [])
+
+    def test_order_patterns_come_first_in_pattern_order(self):
+        shown, _ = arrange(self.KEPT, MenuConfig(order=("/x/u*", "/x/m*")))
+        self.assertEqual(self.rels(shown), ["/x/ubuntu.iso", "/x/mint.iso",
+                                            "/x/arch.iso", "/old/fedora.iso"])
+
+    def test_patterns_ignore_case(self):
+        # exFAT is case-insensitive: "/X/UBUNTU*" names the same file.
+        shown, _ = arrange(self.KEPT, MenuConfig(order=("/X/UBUNTU*",)))
+        self.assertEqual(self.rels(shown)[0], "/x/ubuntu.iso")
+
+    def test_hidden_entries_are_removed(self):
+        shown, hidden = arrange(self.KEPT, MenuConfig(hidden=("/old/*",)))
+        self.assertNotIn("/old/fedora.iso", self.rels(shown))
+        self.assertEqual(hidden, ["/old/fedora.iso"])
+
+
+    def test_hidden_wins_over_order(self):
+        shown, hidden = arrange(self.KEPT, MenuConfig(order=("/old/*",), hidden=("/old/*",)))
+        self.assertNotIn("/old/fedora.iso", self.rels(shown))
+        self.assertEqual(hidden, ["/old/fedora.iso"])
+
+
+class SettingsTest(unittest.TestCase):
+    def test_default_ignores_case_like_exfat(self):
+        # GRUB compares ids exactly: the real path must be written.
+        out = settings(MenuConfig(default="/X/Ubuntu.iso"), {"/x/ubuntu.iso"})
+        self.assertIn("set default=/x/ubuntu.iso\n", out)
+
+    def test_nothing_without_config(self):
+        self.assertEqual(settings(MenuConfig(), {"/a.iso"}), "")
+
+    def test_timeout_and_default(self):
+        out = settings(MenuConfig(timeout=10, default="/a.iso"), {"/a.iso"})
+        self.assertIn("set timeout=10\n", out)
+        self.assertIn("set default=/a.iso\n", out)
+
+    def test_default_not_in_menu_is_left_out(self):
+        self.assertNotIn("default", settings(MenuConfig(default="/gone.iso"), {"/a.iso"}))
+
+    def test_render_with_settings_passes_grub_script_check(self):
+        menu = render(results(("/a.iso", "A")), MenuConfig(timeout=5, default="/a.iso"))
+        self.assertIn("set default=/a.iso", menu)
         with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
             f.write(menu)
             f.flush()
