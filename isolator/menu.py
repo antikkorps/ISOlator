@@ -1,6 +1,7 @@
 """Scan the MULTIBOOT partition and write multiboot/menu.cfg plus add-ons."""
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import os
 import shutil
@@ -8,6 +9,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from isolator.config import MenuConfig
 from isolator.iso9660 import Iso
 from isolator.profiles import SAFE_PATH, Result, detect
 
@@ -42,7 +44,7 @@ def entry(rel: str, r: Result) -> str:
     # since GRUB runs the entry body later, after the loop has moved on.
     return (f"\nset iso={rel}\n"
             f"if [ -f ($isopart)$iso ]; then\n"
-            f'menuentry "{title}" --class {r.css_class} {{\n'
+            f'menuentry "{title}" --class {r.css_class} --id {rel} {{\n'
             f"    set iso={rel}\n"
             f"{addon}"
             f"    loopback loop ($isopart)$iso\n"
@@ -51,8 +53,47 @@ def entry(rel: str, r: Result) -> str:
             f"fi\n")
 
 
-def render(kept: list[tuple[str, Result]]) -> str:
-    return HEADER + "".join(entry(rel, r) for rel, r in kept) + FOOTER
+Entries = list[tuple[str, Result]]
+
+
+def _matches(rel: str, pattern: str) -> bool:
+    # exFAT ignores case, so patterns do too.
+    return fnmatch.fnmatchcase(rel.lower(), pattern.lower())
+
+
+def arrange(kept: Entries, cfg: MenuConfig) -> tuple[Entries, list[str]]:
+    """Apply `hidden` then `order`; return the shown entries and hidden paths."""
+    hidden = [rel for rel, _ in kept if any(_matches(rel, p) for p in cfg.hidden)]
+    rest = [(rel, r) for rel, r in kept if rel not in hidden]
+    placed: list[str] = []
+    for pattern in cfg.order:
+        placed += [rel for rel, _ in rest if _matches(rel, pattern) and rel not in placed]
+    rank = {rel: i for i, rel in enumerate(placed)}
+    # sorted() is stable: unplaced entries keep their title order.
+    return sorted(rest, key=lambda e: rank.get(e[0], len(rank))), hidden
+
+
+def resolve_default(cfg: MenuConfig, ids: set[str]) -> str | None:
+    """The real path of the default entry: exFAT ignores case, GRUB ids do not."""
+    if cfg.default is None:
+        return None
+    return next((i for i in sorted(ids) if i.lower() == cfg.default.lower()), None)
+
+
+def settings(cfg: MenuConfig, ids: set[str]) -> str:
+    """GRUB variables; they override grub.cfg, which sources this menu."""
+    lines = ""
+    if cfg.timeout is not None:
+        lines += f"set timeout={cfg.timeout}\n"
+    default = resolve_default(cfg, ids)
+    if default:
+        lines += f"set default={default}\n"
+    return lines
+
+
+def render(kept: Entries, cfg: MenuConfig = MenuConfig()) -> str:
+    return (HEADER + settings(cfg, {rel for rel, _ in kept})
+            + "".join(entry(rel, r) for rel, r in kept) + FOOTER)
 
 
 def _inspect(path: Path, rel: str, options: dict) -> Result:
@@ -90,7 +131,7 @@ def check_syntax(menu: str) -> str:
     return "" if res.returncode == 0 else (res.stdout + res.stderr or "invalid menu")
 
 
-def write(root: Path, kept: list[tuple[str, Result]]) -> Path:
+def write(root: Path, kept: Entries, cfg: MenuConfig = MenuConfig()) -> Path:
     addons = root / ADDONS
     for rel, r in kept:
         if r.addon is not None:
@@ -101,6 +142,6 @@ def write(root: Path, kept: list[tuple[str, Result]]) -> Path:
         shutil.copy2(target, target.with_suffix(".cfg.bak"))
     # Write then rename: a crash or unplugged disk never leaves GRUB a truncated menu.
     tmp = target.with_suffix(".cfg.new")
-    tmp.write_text(render(kept))
+    tmp.write_text(render(kept, cfg))
     os.replace(tmp, target)
     return target

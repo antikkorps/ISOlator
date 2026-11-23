@@ -77,6 +77,9 @@ Semantic Versioning; tags are annotated `vX.Y.Z` on `main`.
   as a read-only fd opened by a minimal sudo helper (`isolator/privfd.py`).
 - `install-multiboot.sh`: partitions, formats and installs GRUB on the target
   disk. Destructive.
+- `isolator/config.py`: strict parser of the on-disk `multiboot/isolator.toml`
+  (menu settings); the file is untrusted input, values reaching GRUB pass
+  `SAFE_PATH`.
 - `examples/local.cfg`: sample of hand-written entries (chainload of the
   internal OS). On the disk, `multiboot/local.cfg` is never overwritten.
 - `verify-isos.py` + `keys/`: ISO verification; `keys/trusted.txt` pins the

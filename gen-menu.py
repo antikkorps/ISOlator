@@ -10,7 +10,8 @@ Usage:
     ./gen-menu.py --root /path/to/MULTIBOOT
     ./gen-menu.py --dry-run          # print the menu, write nothing
 
-Hand-written entries go in multiboot/local.cfg on the disk.
+Hand-written entries go in multiboot/local.cfg on the disk; timeout, default
+entry, order and hidden entries in multiboot/isolator.toml (see examples/).
 """
 from __future__ import annotations
 
@@ -19,15 +20,24 @@ import getpass
 import sys
 from pathlib import Path
 
-from isolator.menu import analyse, check_syntax, render, write
+from isolator.config import ConfigError, MenuConfig, load_config
+from isolator.menu import analyse, arrange, check_syntax, render, resolve_default, write
 
 
-def report(kept, skipped) -> None:
+def report(kept, hidden, skipped) -> None:
     for rel, r in kept:
         extra = " (+exFAT add-on)" if r.addon is not None else ""
         print(f"  OK       {r.title:<45} {rel}{extra}", file=sys.stderr)
+    for rel in hidden:
+        print(f"  hidden   {rel}", file=sys.stderr)
     for rel, reason in skipped:
         print(f"  skipped  {rel}\n           -> {reason}", file=sys.stderr)
+
+
+def warn_default(cfg: MenuConfig, kept) -> None:
+    if cfg.default and not resolve_default(cfg, {rel for rel, _ in kept}):
+        print(f"  WARNING  default {cfg.default} is not in the menu (missing or hidden):"
+              " GRUB will start on the first entry", file=sys.stderr)
 
 
 def main() -> int:
@@ -39,17 +49,23 @@ def main() -> int:
     if not (args.root / "multiboot").is_dir():
         sys.exit(f"{args.root}/multiboot not found: is the MULTIBOOT partition mounted?")
 
-    kept, skipped = analyse(args.root)
-    menu = render(kept)
+    try:
+        cfg = load_config(args.root / "multiboot" / "isolator.toml")
+    except ConfigError as err:
+        sys.exit(f"ERROR: {err}\nNothing written: the current menu is unchanged.")
+    found, skipped = analyse(args.root)
+    kept, hidden = arrange(found, cfg)
+    warn_default(cfg, kept)
+    menu = render(kept, cfg)
     errors = check_syntax(menu)
     if errors:
         print(menu)
         sys.exit(f"grub-script-check rejected the menu:\n{errors}")
-    report(kept, skipped)
+    report(kept, hidden, skipped)
     if args.dry_run:
         print(menu)
         return 0
-    target = write(args.root, kept)
+    target = write(args.root, kept, cfg)
     print(f"\n{target} written ({len(kept)} entries, previous menu in menu.cfg.bak)", file=sys.stderr)
     return 0
 

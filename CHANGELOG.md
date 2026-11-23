@@ -6,7 +6,18 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+- The whitelists for what reaches the GRUB script (paths, labels, kernel
+  arguments, classes) ended with `$`, which in Python also accepts a trailing
+  newline: an ISO with such a file name or label could add a line break to
+  `menu.cfg`. They now end with `\Z`.
+
 ### Added
+- Menu settings in `MULTIBOOT:/multiboot/isolator.toml` (sample in
+  `examples/isolator.toml`): `timeout`, `default` entry, `order` and `hidden`
+  patterns. The file is validated strictly: an unknown key or invalid value
+  stops `gen-menu.py` with a message and leaves the current menu untouched.
+- Each generated entry has a stable `--id` (its ISO path).
 - `qemu-test.py`: boots the USB disk in a QEMU/OVMF virtual machine, with an
   optional qcow2 install target, to test a full installation or preview the
   menu without rebooting. Same serial/USB/system-disk guard rails as the

@@ -1,0 +1,17 @@
+# isolator.toml - menu settings; copy to MULTIBOOT:/multiboot/isolator.toml
+# then run ./gen-menu.py. Every key is optional; unknown keys are refused.
+# Paths are relative to the MULTIBOOT partition and start with "/".
+
+[menu]
+# Seconds before the default entry boots; -1 waits for a key press.
+timeout = 10
+
+# ISO booted when the timeout expires (its path; case is ignored, as on exFAT).
+default = "/x86_64/ubuntu-26.04-desktop-amd64.iso"
+
+# Entries matching these patterns come first, in this order; the others
+# follow, sorted by title. Patterns ignore case; * also crosses "/".
+order = ["/x86_64/ubuntu-*", "/x86_64/linuxmint-*"]
+
+# Entries matching these patterns are left out of the menu.
+hidden = ["/x86_64/old/*"]
