@@ -6,6 +6,20 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `qemu-test.py`: boots the USB disk in a QEMU/OVMF virtual machine, with an
+  optional qcow2 install target, to test a full installation or preview the
+  menu without rebooting. Same serial/USB/system-disk guard rails as the
+  installer; only the read-only `open()` of the device runs as root, QEMU runs
+  as the user and receives the disk as a read-only descriptor. Guest RAM
+  defaults to half the host's (at most 4 GB) so the host does not swap.
+
+### Known limitations
+- A full installation to disk has now been tested under QEMU/OVMF: Rocky
+  Linux 9.9 installed from the ISOlator disk onto a virtual disk, then booted
+  on its own to the GNOME first-boot screen. Not yet tested onto a physical
+  disk, nor for Ubuntu, Mint, Fedora or CachyOS.
+
 ## [0.1.2] - 2026-11-22
 
 ### Known limitations

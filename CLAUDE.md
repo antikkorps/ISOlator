@@ -21,6 +21,8 @@ Overview, disk layout and supported ISO families: @README.md
 - Generate the menu onto the disk: `./gen-menu.py [--root /media/$USER/MULTIBOOT]`
 - Prepare the disk (ERASES IT, root): `sudo ./install-multiboot.sh /dev/sdX "<serial>"`
 - Tests: `python3 -m unittest discover -s tests -t .`
+- Boot the disk in QEMU (read-only, asks sudo for the open only):
+  `./qemu-test.py /dev/sdX "<serial>" [--target disk.qcow2]`
 - Shell lint: `shellcheck install-multiboot.sh`
 - GRUB syntax: `grub-script-check examples/local.cfg`
 
@@ -71,6 +73,8 @@ Semantic Versioning; tags are annotated `vX.Y.Z` on `main`.
   (no mount, no sudo), identifies it by content via "profiles" (one per
   distro family, ordered from most specific to most generic), writes
   `MULTIBOOT:/multiboot/menu.cfg` after validating it with `grub-script-check`.
+- `qemu-test.py`: boots the disk in QEMU/OVMF; the device reaches QEMU only
+  as a read-only fd opened by a minimal sudo helper (`isolator/privfd.py`).
 - `install-multiboot.sh`: partitions, formats and installs GRUB on the target
   disk. Destructive.
 - `examples/local.cfg`: sample of hand-written entries (chainload of the
@@ -97,8 +101,7 @@ Semantic Versioning; tags are annotated `vX.Y.Z` on `main`.
   two disks of the same model can be plugged at once.
 - Commands needing root are run by the user in their own terminal; give them
   the exact command instead of running sudo.
-- Language: code, comments, CLI messages and docs are in English (migration
-  from French in progress; translate what you touch).
+- Language: code, comments, CLI messages and docs are in English.
 - Never put personal data (disk serials, filesystem UUIDs, user names) in
   committed code or examples: use placeholders (`XXXX-XXXX`) or arguments.
 - No `Co-Authored-By` or other Claude attribution in commits.

@@ -100,6 +100,14 @@ Signatures are refused if made by a revoked or expired key, or if expired;
 two signed lists disagreeing about an ISO verify nothing; symlinks and
 non-regular files are never reported as verified.
 
+## Testing in a virtual machine
+
+`./qemu-test.py /dev/sdX "<serial>" [--target disk.qcow2]` boots the disk
+under QEMU with UEFI firmware (OVMF), optionally with a virtual disk to
+install onto. The USB disk is strictly read-only: sudo only opens it with
+`O_RDONLY` and hands the descriptor to QEMU, which runs as you. Debian
+packages: `qemu-system-x86`, `qemu-utils`, `ovmf`.
+
 ## Development
 
 ```sh
