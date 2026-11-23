@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from isolator.qemu import VmSpec, qemu_command
+from isolator.qemu import VmSpec, default_memory, qemu_command
 
 
 def spec(**kw):
@@ -61,6 +61,18 @@ class QemuCommandTest(unittest.TestCase):
 
     def test_memory(self):
         self.assertEqual(option_values(qemu_command(spec(memory_mb=2048)), "-m"), ["2048"])
+
+
+
+class DefaultMemoryTest(unittest.TestCase):
+    MEMINFO = "MemTotal:        3819520 kB\nMemFree:          121000 kB\n"
+
+    def test_half_of_a_small_host(self):
+        # A 3.7 GB host given a 4 GB guest swaps the whole installation.
+        self.assertEqual(default_memory(self.MEMINFO), 1865)
+
+    def test_capped_at_4096_on_a_large_host(self):
+        self.assertEqual(default_memory("MemTotal: 33554432 kB\n"), 4096)
 
 
 if __name__ == "__main__":

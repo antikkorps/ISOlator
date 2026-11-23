@@ -12,6 +12,15 @@ from pathlib import Path
 OVMF_CODE = Path("/usr/share/OVMF/OVMF_CODE_4M.fd")
 OVMF_VARS = Path("/usr/share/OVMF/OVMF_VARS_4M.fd")
 FDSET = 1
+MAX_DEFAULT_MB = 4096
+
+
+def default_memory(meminfo: str) -> int:
+    """Guest RAM in MiB: at most half the host's, so the host never swaps."""
+    for line in meminfo.splitlines():
+        if line.startswith("MemTotal:"):
+            return min(MAX_DEFAULT_MB, int(line.split()[1]) // 1024 // 2)
+    return MAX_DEFAULT_MB
 
 
 @dataclass(frozen=True)

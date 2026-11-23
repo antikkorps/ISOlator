@@ -25,7 +25,7 @@ from pathlib import Path
 
 from isolator.blockdev import check_disk, read_disk
 from isolator.privfd import open_readonly_as_root
-from isolator.qemu import OVMF_VARS, VmSpec, qemu_command
+from isolator.qemu import OVMF_VARS, VmSpec, default_memory, qemu_command
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,7 +35,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--target", type=Path,
                    help="qcow2 install target, created if missing")
     p.add_argument("--target-size", default="40G")
-    p.add_argument("--memory", type=int, default=4096, help="MiB")
+    p.add_argument("--memory", type=int,
+                   default=default_memory(Path("/proc/meminfo").read_text()),
+                   help="MiB (default: half the host RAM, at most 4096)")
     return p.parse_args()
 
 
