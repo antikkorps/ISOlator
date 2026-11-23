@@ -6,6 +6,8 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 ### Security
 - The whitelists for what reaches the GRUB script (paths, labels, kernel
   arguments, classes) ended with `$`, which in Python also accepts a trailing
@@ -30,6 +32,8 @@ All notable changes to ISOlator are documented here. The format follows
   Linux 9.9 installed from the ISOlator disk onto a virtual disk, then booted
   on its own to the GNOME first-boot screen. Not yet tested onto a physical
   disk, nor for Ubuntu, Mint, Fedora or CachyOS.
+- `isolator.toml` (order, hidden entry, default entry, timeout) was checked on
+  the real disk booted under `qemu-test.py`, not yet on a physical PC.
 
 ## [0.1.2] - 2026-11-22
 
@@ -97,7 +101,8 @@ First public release.
   images and their initrds, but not yet booted on real hardware.
 - Debian installer / Debian Live, Windows and arm64 ISOs are not bootable yet.
 
-[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/antikkorps/ISOlator/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/antikkorps/ISOlator/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/antikkorps/ISOlator/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/antikkorps/ISOlator/releases/tag/v0.1.0
