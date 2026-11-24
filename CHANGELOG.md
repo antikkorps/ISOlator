@@ -6,6 +6,8 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-24
+
 ### Fixed
 - Booting an entry after leaving another ISO's own menu (loopback.cfg, e.g.
   CachyOS) with Esc failed with "device name already exists" then
@@ -127,7 +129,8 @@ First public release.
   images and their initrds, but not yet booted on real hardware.
 - Debian installer / Debian Live, Windows and arm64 ISOs are not bootable yet.
 
-[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/antikkorps/ISOlator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/antikkorps/ISOlator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/antikkorps/ISOlator/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/antikkorps/ISOlator/compare/v0.1.1...v0.1.2
