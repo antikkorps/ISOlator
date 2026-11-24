@@ -6,6 +6,7 @@ reaches the GRUB script passes the same whitelist as the ISO paths.
 """
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,10 +14,20 @@ from pathlib import Path
 from isolator.profiles import SAFE_PATH
 
 MAX_TIMEOUT = 3600
+# Submenu titles go between double quotes in menu.cfg: no " $ \\ { } or newline.
+# GRUB strips the quotes before parsing options, so a leading "-" would be
+# read as an option of `submenu`: the title must start with a letter or digit.
+SAFE_TITLE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._+()-]{0,59}\Z")
 
 
 class ConfigError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class Submenu:
+    title: str
+    match: tuple[str, ...]          # glob patterns, as in `order`
 
 
 @dataclass(frozen=True)
@@ -25,6 +36,8 @@ class MenuConfig:
     default: str | None = None      # ISO path, also the entry's --id
     order: tuple[str, ...] = ()     # glob patterns, listed first in this order
     hidden: tuple[str, ...] = ()    # glob patterns left out of the menu
+    submenus: bool = False          # group the rest as Installers / Live systems
+    submenu: tuple[Submenu, ...] = ()
 
 
 def _timeout(value: object) -> int:
@@ -50,15 +63,47 @@ def _patterns(key: str, value: object) -> tuple[str, ...]:
     return tuple(value)
 
 
-def _menu(table: dict) -> MenuConfig:
-    unknown = set(table) - {"timeout", "default", "order", "hidden"}
+def _submenus(value: object) -> bool:
+    if type(value) is not bool:
+        raise ConfigError("menu.submenus must be true or false")
+    return value
+
+
+def _refuse_unknown(table: dict, known: set[str], where: str) -> None:
+    unknown = set(table) - known
     if unknown:
-        raise ConfigError(f"unknown key(s) in [menu]: {', '.join(sorted(unknown))}")
+        raise ConfigError(f"unknown key(s) in {where}: {', '.join(sorted(unknown))}")
+
+
+def _submenu(table: object) -> Submenu:
+    if not isinstance(table, dict):
+        raise ConfigError("menu.submenu must be written as [[menu.submenu]] blocks")
+    _refuse_unknown(table, {"title", "match"}, "[[menu.submenu]]")
+    title = table.get("title")
+    if not isinstance(title, str) or not SAFE_TITLE.match(title):
+        raise ConfigError("menu.submenu.title must be 1 to 60 characters among "
+                          "A-Z a-z 0-9 space . _ + ( ) -, starting with a letter or digit")
+    if "match" not in table:
+        raise ConfigError(f"[[menu.submenu]] \"{title}\" needs a match list")
+    match = _patterns("submenu.match", table["match"])
+    if not match:
+        raise ConfigError(f"[[menu.submenu]] \"{title}\": match must not be empty")
+    return Submenu(title, match)
+
+
+def _menu(table: dict) -> MenuConfig:
+    _refuse_unknown(table, {"timeout", "default", "order", "hidden", "submenus", "submenu"},
+                    "[menu]")
+    subs = table.get("submenu", [])
+    if not isinstance(subs, list):
+        raise ConfigError("menu.submenu must be written as [[menu.submenu]] blocks")
     return MenuConfig(
         timeout=_timeout(table["timeout"]) if "timeout" in table else None,
         default=_default(table["default"]) if "default" in table else None,
         order=_patterns("order", table.get("order", [])),
-        hidden=_patterns("hidden", table.get("hidden", [])))
+        hidden=_patterns("hidden", table.get("hidden", [])),
+        submenus=_submenus(table.get("submenus", False)),
+        submenu=tuple(_submenu(t) for t in subs))
 
 
 def parse_config(text: str) -> MenuConfig:

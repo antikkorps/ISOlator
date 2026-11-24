@@ -84,23 +84,23 @@ class ArrangeTest(unittest.TestCase):
 class SettingsTest(unittest.TestCase):
     def test_default_ignores_case_like_exfat(self):
         # GRUB compares ids exactly: the real path must be written.
-        out = settings(MenuConfig(default="/X/Ubuntu.iso"), {"/x/ubuntu.iso"})
-        self.assertIn("set default=/x/ubuntu.iso\n", out)
+        out = settings(MenuConfig(default="/X/Ubuntu.iso"), {"/x/ubuntu.iso": "/x/ubuntu.iso"})
+        self.assertIn('set default="/x/ubuntu.iso"\n', out)
 
     def test_nothing_without_config(self):
-        self.assertEqual(settings(MenuConfig(), {"/a.iso"}), "")
+        self.assertEqual(settings(MenuConfig(), {"/a.iso": "/a.iso"}), "")
 
     def test_timeout_and_default(self):
-        out = settings(MenuConfig(timeout=10, default="/a.iso"), {"/a.iso"})
+        out = settings(MenuConfig(timeout=10, default="/a.iso"), {"/a.iso": "/a.iso"})
         self.assertIn("set timeout=10\n", out)
-        self.assertIn("set default=/a.iso\n", out)
+        self.assertIn('set default="/a.iso"\n', out)
 
     def test_default_not_in_menu_is_left_out(self):
-        self.assertNotIn("default", settings(MenuConfig(default="/gone.iso"), {"/a.iso"}))
+        self.assertNotIn("default", settings(MenuConfig(default="/gone.iso"), {"/a.iso": "/a.iso"}))
 
     def test_render_with_settings_passes_grub_script_check(self):
         menu = render(results(("/a.iso", "A")), MenuConfig(timeout=5, default="/a.iso"))
-        self.assertIn("set default=/a.iso", menu)
+        self.assertIn('set default="/a.iso"', menu)
         with tempfile.NamedTemporaryFile("w", suffix=".cfg") as f:
             f.write(menu)
             f.flush()

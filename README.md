@@ -38,7 +38,7 @@ everything is a script you can read.
 2. Copy ISOs anywhere on `MULTIBOOT` (names without spaces or accents).
 3. `./gen-menu.py` (or `--dry-run` to preview without writing).
 4. Hand-written entries: `multiboot/local.cfg` on the disk (example in `examples/local.cfg`).
-   Menu settings (timeout, default entry, order, hidden entries):
+   Menu settings (timeout, default entry, order, hidden entries, submenus):
    `multiboot/isolator.toml` (example in `examples/isolator.toml`), then
    re-run `./gen-menu.py`.
 5. Optional, recommended: download each distribution's checksum file and its
@@ -128,10 +128,10 @@ Test ISOs are generated in Python at test time (`tests/isobuilder.py`).
 - [ ] Debian installer / Debian Live from exFAT
 - [ ] Full GRUB customisation, driven by a user config file on the disk:
   - [x] timeout, default entry, entry order, hidden entries (`isolator.toml`)
+  - [x] submenus: automatic (installers, live systems) and custom (`isolator.toml`)
   - ISOlator theme (background, fonts, colours, layout), with alternative themes
   - per-distribution icons through `--class`
   - menu title / branding
-  - submenus by category (installers, live systems, tools)
   - resolution / `gfxmode`, keyboard layout (AZERTY…)
   - theme preview without rebooting (QEMU/OVMF)
 - [ ] Secure Boot with personal keys, GRUB arm64

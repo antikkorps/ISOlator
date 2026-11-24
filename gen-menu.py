@@ -11,7 +11,8 @@ Usage:
     ./gen-menu.py --dry-run          # print the menu, write nothing
 
 Hand-written entries go in multiboot/local.cfg on the disk; timeout, default
-entry, order and hidden entries in multiboot/isolator.toml (see examples/).
+entry, order, hidden entries and submenus in multiboot/isolator.toml (see
+examples/).
 """
 from __future__ import annotations
 

@@ -1,15 +1,16 @@
 """Scan the MULTIBOOT partition and write multiboot/menu.cfg plus add-ons."""
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import os
 import shutil
 import subprocess
 import tempfile
+import textwrap
 from pathlib import Path
 
 from isolator.config import MenuConfig
+from isolator.groups import Entries, Group, entry_ids, group, matches
 from isolator.iso9660 import Iso
 from isolator.profiles import SAFE_PATH, Result, detect
 
@@ -53,21 +54,18 @@ def entry(rel: str, r: Result) -> str:
             f"fi\n")
 
 
-Entries = list[tuple[str, Result]]
-
-
-def _matches(rel: str, pattern: str) -> bool:
-    # exFAT ignores case, so patterns do too.
-    return fnmatch.fnmatchcase(rel.lower(), pattern.lower())
+def submenu(g: Group) -> str:
+    body = textwrap.indent("".join(entry(rel, r) for rel, r in g.entries), "    ")
+    return f'\nsubmenu "{g.title}" --class submenu --id {g.id} {{{body}}}\n'
 
 
 def arrange(kept: Entries, cfg: MenuConfig) -> tuple[Entries, list[str]]:
     """Apply `hidden` then `order`; return the shown entries and hidden paths."""
-    hidden = [rel for rel, _ in kept if any(_matches(rel, p) for p in cfg.hidden)]
+    hidden = [rel for rel, _ in kept if any(matches(rel, p) for p in cfg.hidden)]
     rest = [(rel, r) for rel, r in kept if rel not in hidden]
     placed: list[str] = []
     for pattern in cfg.order:
-        placed += [rel for rel, _ in rest if _matches(rel, pattern) and rel not in placed]
+        placed += [rel for rel, _ in rest if matches(rel, pattern) and rel not in placed]
     rank = {rel: i for i, rel in enumerate(placed)}
     # sorted() is stable: unplaced entries keep their title order.
     return sorted(rest, key=lambda e: rank.get(e[0], len(rank))), hidden
@@ -80,20 +78,23 @@ def resolve_default(cfg: MenuConfig, ids: set[str]) -> str | None:
     return next((i for i in sorted(ids) if i.lower() == cfg.default.lower()), None)
 
 
-def settings(cfg: MenuConfig, ids: set[str]) -> str:
-    """GRUB variables; they override grub.cfg, which sources this menu."""
+def settings(cfg: MenuConfig, ids: dict[str, str]) -> str:
+    """GRUB variables; they override grub.cfg, which sources this menu.
+    `ids` maps each ISO path to its GRUB id (see groups.entry_ids)."""
     lines = ""
     if cfg.timeout is not None:
         lines += f"set timeout={cfg.timeout}\n"
-    default = resolve_default(cfg, ids)
+    default = resolve_default(cfg, set(ids))
     if default:
-        lines += f"set default={default}\n"
+        lines += f'set default="{ids[default]}"\n'
     return lines
 
 
 def render(kept: Entries, cfg: MenuConfig = MenuConfig()) -> str:
-    return (HEADER + settings(cfg, {rel for rel, _ in kept})
-            + "".join(entry(rel, r) for rel, r in kept) + FOOTER)
+    top, groups = group(kept, cfg)
+    return (HEADER + settings(cfg, entry_ids(top, groups))
+            + "".join(entry(rel, r) for rel, r in top)
+            + "".join(submenu(g) for g in groups) + FOOTER)
 
 
 def _inspect(path: Path, rel: str, options: dict) -> Result:

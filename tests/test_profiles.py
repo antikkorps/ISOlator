@@ -46,6 +46,7 @@ class ProfilesTest(unittest.TestCase):
         self.assertEqual(r.title, "Rocky Linux 10.3 - install")
         self.assertEqual(r.css_class, "rocky")
         self.assertIn("inst.stage2=hd:LABEL=$isolabel:$iso", r.body)
+        self.assertEqual(r.category, "install")
 
     def test_fedora_live_uses_volume_label(self):
         r = self.detect({"LiveOS": {"squashfs.img": b"s"},
@@ -53,6 +54,7 @@ class ProfilesTest(unittest.TestCase):
                         rel="/Fedora-Workstation-Live-45-1.4.x86_64.iso", label="Fedora-WS-Live-45")
         self.assertIn("root=live:CDLABEL=Fedora-WS-Live-45", r.body)
         self.assertEqual(r.title, "Fedora Workstation Live 45 1.4 - live")
+        self.assertEqual(r.category, "live")
 
     def test_fedora_live_refuses_unsafe_label(self):
         r = self.detect({"LiveOS": {"squashfs.img": b"s"},
