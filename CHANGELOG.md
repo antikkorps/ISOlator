@@ -6,6 +6,8 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 ### Added
 - Submenus in `isolator.toml`: `submenus = true` groups the entries as
   "Installers" and "Live systems" according to what each ISO is;
@@ -16,6 +18,13 @@ All notable changes to ISOlator are documented here. The format follows
 
 ### Changed
 - `set default` is now quoted in `menu.cfg`.
+
+### Known limitations
+- Submenus (automatic, custom, and a `default` entry inside a submenu) were
+  checked on the real disk booted under `qemu-test.py`, not yet on a
+  physical PC.
+- The category is per profile: casper ISOs (including Ubuntu Server) and
+  `loopback.cfg` ISOs are filed under "Live systems", even installers.
 
 ## [0.2.0] - 2026-11-23
 
@@ -112,7 +121,8 @@ First public release.
   images and their initrds, but not yet booted on real hardware.
 - Debian installer / Debian Live, Windows and arm64 ISOs are not bootable yet.
 
-[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/antikkorps/ISOlator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/antikkorps/ISOlator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/antikkorps/ISOlator/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/antikkorps/ISOlator/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/antikkorps/ISOlator/compare/v0.1.0...v0.1.1
