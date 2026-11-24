@@ -25,6 +25,13 @@ class EntryTest(unittest.TestCase):
         out = entry("/x86_64/ubuntu.iso", Result(title="U", css_class="ubuntu", body="", addon=b"A"))
         self.assertIn(f"    set addon=($isopart)/multiboot/addons/{addon_name('/x86_64/ubuntu.iso')}\n", out)
 
+    def test_stale_loop_device_is_dropped_before_mapping(self):
+        # A previous entry (e.g. an ISO menu left with Esc) may still hold
+        # (loop): without this, GRUB keeps the old ISO mapped.
+        out = entry("/a.iso", Result(title="A", css_class="a", body=""))
+        drop = "    if [ -d (loop)/ ]; then loopback -d loop; fi\n"
+        self.assertIn(drop + "    loopback loop ($isopart)$iso\n", out)
+
     def test_addon_name_is_unique_per_path(self):
         self.assertNotEqual(addon_name("/a_b.iso"), addon_name("/a/b.iso"))
         self.assertRegex(addon_name("/x86_64/ubuntu-26.04.iso"), r"^ubuntu-26\.04-[0-9a-f]{12}\.img$")

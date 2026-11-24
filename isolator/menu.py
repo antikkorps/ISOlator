@@ -48,6 +48,10 @@ def entry(rel: str, r: Result) -> str:
             f'menuentry "{title}" --class {r.css_class} --id {rel} {{\n'
             f"    set iso={rel}\n"
             f"{addon}"
+            # (loop) outlives its entry: after an ISO's own menu is left with
+            # Esc, it still maps that ISO and `loopback loop` would refuse.
+            # `[ -d ]` probes silently, unlike `loopback -d` on a missing device.
+            f"    if [ -d (loop)/ ]; then loopback -d loop; fi\n"
             f"    loopback loop ($isopart)$iso\n"
             f"{r.body}"
             f"}}\n"

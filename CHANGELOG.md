@@ -6,6 +6,12 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Booting an entry after leaving another ISO's own menu (loopback.cfg, e.g.
+  CachyOS) with Esc failed with "device name already exists" then
+  "file `/casper/vmlinuz' not found": the `(loop)` device still mapped the
+  previous ISO. Each entry now drops a stale `(loop)` before mapping its ISO.
+
 ## [0.3.0] - 2026-11-24
 
 ### Added
