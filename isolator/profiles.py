@@ -31,6 +31,7 @@ class Result:
     body: str = ""            # GRUB lines inside the menuentry, after loopback
     refusal: str = ""         # non-empty: recognised but not bootable
     addon: bytes | None = None  # extra initrd, referenced as $addon in body
+    category: str = "live"    # "install" or "live": picks the automatic submenu
 
 
 def readable_name(filename: str) -> str:
@@ -65,7 +66,7 @@ def anaconda(iso: Iso, rel: str, **_) -> Result | None:
     except (ValueError, FileNotFoundError) as err:
         return Result(refusal=f"anaconda: {err}")
     return Result(
-        title=f"{name} - install", css_class=css,
+        title=f"{name} - install", css_class=css, category="install",
         body=(f"    linux  (loop)/{k} inst.stage2=hd:LABEL=$isolabel:$iso inst.repo=hd:LABEL=$isolabel:$iso quiet\n"
               f"    initrd (loop)/{i}\n"))
 

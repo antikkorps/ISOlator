@@ -15,3 +15,16 @@ order = ["/x86_64/ubuntu-*", "/x86_64/linuxmint-*"]
 
 # Entries matching these patterns are left out of the menu.
 hidden = ["/x86_64/old/*"]
+
+# Group the entries into submenus: "Installers" and "Live systems", sorted by
+# what each ISO is. Off by default (one flat menu).
+submenus = true
+
+# Custom submenus: entries matching `match` go into a submenu with this title
+# (A-Z a-z 0-9 space . _ + ( ) - only, starting with a letter or digit).
+# They are filled before the automatic ones and listed after them; an entry
+# goes to the first submenu it matches. They also work with
+# `submenus = false`: the other entries stay at the top.
+[[menu.submenu]]
+title = "Tools"
+match = ["/tools/*"]

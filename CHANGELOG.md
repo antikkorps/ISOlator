@@ -6,6 +6,17 @@ All notable changes to ISOlator are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Submenus in `isolator.toml`: `submenus = true` groups the entries as
+  "Installers" and "Live systems" according to what each ISO is;
+  `[[menu.submenu]]` blocks (`title`, `match` patterns) add custom submenus,
+  which claim their entries first. The `default` entry still works inside a
+  submenu. Submenu titles are whitelisted (`A-Z a-z 0-9 space . _ + ( ) -`,
+  starting with a letter or digit so GRUB cannot read them as an option).
+
+### Changed
+- `set default` is now quoted in `menu.cfg`.
+
 ## [0.2.0] - 2026-11-23
 
 ### Security
